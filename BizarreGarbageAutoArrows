@@ -1,634 +1,474 @@
--- Создаем основной GUI
-local player = game:GetService("Players").LocalPlayer
-local userInputService = game:GetService("UserInputService")
-local tweenService = game:GetService("TweenService")
-local replicatedStorage = game:GetService("ReplicatedStorage")
+local p=game:GetService("Players").LocalPlayer
+local rs=game:GetService("ReplicatedStorage")
+local uis=game:GetService("UserInputService")
+local rs2=game:GetService("RunService")
 
--- Проверяем существование ScreenGui
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "StandInfoGUI"
-screenGui.ResetOnSpawn = false
-screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-screenGui.Parent = player:WaitForChild("PlayerGui")
+local g=Instance.new("ScreenGui")
+g.Name="StandGUI"
+g.Parent=p:WaitForChild("PlayerGui")
 
--- Создаем основное окно
-local mainFrame = Instance.new("Frame")
-mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 350, 0, 400) -- Еще увеличил высоту
-mainFrame.Position = UDim2.new(0.5, -175, 0.5, -200)
-mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-mainFrame.BackgroundTransparency = 0.1
-mainFrame.BorderSizePixel = 0
-mainFrame.Active = true
-mainFrame.Parent = screenGui
+local f=Instance.new("Frame")
+f.Size=UDim2.new(0,300,0,450)
+f.Position=UDim2.new(0.5,-150,0.5,-225)
+f.BackgroundColor3=Color3.fromRGB(30,30,35)
+f.BackgroundTransparency=0
+f.Active=true
+f.Parent=g
+Instance.new("UICorner",f).CornerRadius=UDim.new(0,8)
 
--- Добавляем закругленные углы
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 12)
-corner.Parent = mainFrame
+local t=Instance.new("Frame")
+t.Size=UDim2.new(1,0,0,30)
+t.BackgroundColor3=Color3.fromRGB(45,45,50)
+t.Parent=f
+Instance.new("UICorner",t).CornerRadius=UDim.new(0,8)
 
--- Добавляем тень
-local shadow = Instance.new("ImageLabel")
-shadow.Name = "Shadow"
-shadow.Size = UDim2.new(1, 20, 1, 20)
-shadow.Position = UDim2.new(0, -10, 0, -10)
-shadow.BackgroundTransparency = 1
-shadow.Image = "rbxassetid://6014261993"
-shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
-shadow.ImageTransparency = 0.6
-shadow.ScaleType = Enum.ScaleType.Slice
-shadow.SliceCenter = Rect.new(10, 10, 118, 118)
-shadow.Parent = mainFrame
+local tt=Instance.new("TextLabel")
+tt.Size=UDim2.new(1,-35,1,0)
+tt.Position=UDim2.new(0,10,0,0)
+tt.BackgroundTransparency=1
+tt.Text="Stand Farm"
+tt.TextColor3=Color3.new(1,1,1)
+tt.TextXAlignment="Left"
+tt.Font=Enum.Font.GothamSemibold
+tt.TextSize=16
+tt.Parent=t
 
--- Заголовок окна
-local titleFrame = Instance.new("Frame")
-titleFrame.Name = "TitleFrame"
-titleFrame.Size = UDim2.new(1, 0, 0, 35)
-titleFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
-titleFrame.BackgroundTransparency = 0.2
-titleFrame.BorderSizePixel = 0
-titleFrame.Parent = mainFrame
+local c=Instance.new("TextButton")
+c.Size=UDim2.new(0,25,0,25)
+c.Position=UDim2.new(1,-30,0.5,-12.5)
+c.BackgroundColor3=Color3.fromRGB(60,60,70)
+c.Text="X"
+c.TextColor3=Color3.new(1,1,1)
+c.Font=Enum.Font.GothamBold
+c.TextSize=16
+c.BorderSizePixel=0
+c.Parent=t
+Instance.new("UICorner",c).CornerRadius=UDim.new(0,4)
+c.MouseButton1Click:Connect(function() g:Destroy() end)
 
-local titleCorner = Instance.new("UICorner")
-titleCorner.CornerRadius = UDim.new(0, 12)
-titleCorner.Parent = titleFrame
-
--- Система перетаскивания
-local dragging = false
-local dragInput
+-- Перетаскивание
+local dragging=false
 local dragStart
 local startPos
 
-local function updateDrag(input)
-    if dragging and dragStart and startPos then
-        local delta = Vector3.new(input.Position.X - dragStart.X, input.Position.Y - dragStart.Y, 0)
-        mainFrame.Position = UDim2.new(
-            startPos.X.Scale, 
-            startPos.X.Offset + delta.X, 
-            startPos.Y.Scale, 
-            startPos.Y.Offset + delta.Y
+t.InputBegan:Connect(function(input)
+    if input.UserInputType==Enum.UserInputType.MouseButton1 then
+        dragging=true
+        dragStart=input.Position
+        startPos=f.Position
+    end
+end)
+
+t.InputEnded:Connect(function(input)
+    if input.UserInputType==Enum.UserInputType.MouseButton1 then
+        dragging=false
+    end
+end)
+
+uis.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType==Enum.UserInputType.MouseMovement then
+        local delta=input.Position-dragStart
+        f.Position=UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset+delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset+delta.Y
         )
     end
+end)
+
+local cf=Instance.new("Frame")
+cf.Size=UDim2.new(1,-20,1,-40)
+cf.Position=UDim2.new(0,10,0,35)
+cf.BackgroundTransparency=1
+cf.Parent=f
+
+-- Информация
+local y=0
+local function addLabel(text)
+    local l=Instance.new("TextLabel",cf)
+    l.Size=UDim2.new(1,0,0,20)
+    l.Position=UDim2.new(0,0,0,y)
+    l.BackgroundTransparency=1
+    l.Text=text
+    l.TextColor3=Color3.new(1,1,1)
+    l.TextXAlignment="Left"
+    l.Font=Enum.Font.GothamBold
+    l.TextSize=14
+    y=y+22
+    return l
 end
 
-titleFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = mainFrame.Position
-        
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
-    end
-end)
+local sl=addLabel("Stand: Loading...")
+local tl=addLabel("Trait: Loading...")
+local wl=addLabel("Worth: Loading...")
 
-titleFrame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
-    end
-end)
+y=y+5
 
-userInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        updateDrag(input)
-    end
-end)
+-- Кнопка стенда
+local sd=Instance.new("TextButton",cf)
+sd.Size=UDim2.new(1,0,0,30)
+sd.Position=UDim2.new(0,0,0,y)
+sd.BackgroundColor3=Color3.fromRGB(60,60,70)
+sd.Text="Select stand..."
+sd.TextColor3=Color3.fromRGB(180,180,180)
+sd.TextXAlignment="Left"
+sd.Font=Enum.Font.Gotham
+sd.TextSize=14
+sd.ZIndex=2
+Instance.new("UICorner",sd).CornerRadius=UDim.new(0,4)
 
--- Заголовок текста
-local titleText = Instance.new("TextLabel")
-titleText.Name = "TitleText"
-titleText.Size = UDim2.new(1, -40, 1, 0)
-titleText.Position = UDim2.new(0, 15, 0, 0)
-titleText.BackgroundTransparency = 1
-titleText.Text = "Stand Information"
-titleText.TextColor3 = Color3.fromRGB(255, 255, 255)
-titleText.TextScaled = true
-titleText.Font = Enum.Font.GothamSemibold
-titleText.TextXAlignment = Enum.TextXAlignment.Left
-titleText.Parent = titleFrame
+-- Список стендов
+local slist=Instance.new("ScrollingFrame")
+slist.Size=UDim2.new(1,0,0,150)
+slist.Position=UDim2.new(0,0,0,y+31)
+slist.BackgroundColor3=Color3.fromRGB(40,40,45)
+slist.BackgroundTransparency=0
+slist.Visible=false
+slist.ScrollBarThickness=5
+slist.ZIndex=10
+slist.Parent=cf
+slist.BorderSizePixel=0
+Instance.new("UICorner",slist).CornerRadius=UDim.new(0,4)
 
--- Кнопка закрытия (просто буква Х)
-local closeButton = Instance.new("TextButton")
-closeButton.Name = "CloseButton"
-closeButton.Size = UDim2.new(0, 30, 0, 30)
-closeButton.Position = UDim2.new(1, -35, 0, 2.5)
-closeButton.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-closeButton.BackgroundTransparency = 0.3
-closeButton.Text = "X"
-closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-closeButton.TextScaled = true
-closeButton.Font = Enum.Font.GothamBold
-closeButton.BorderSizePixel = 0
-closeButton.Parent = titleFrame
+y=y+35
 
-local closeCorner = Instance.new("UICorner")
-closeCorner.CornerRadius = UDim.new(0, 8)
-closeCorner.Parent = closeButton
+-- Кнопка трейта
+local td=Instance.new("TextButton",cf)
+td.Size=UDim2.new(1,0,0,30)
+td.Position=UDim2.new(0,0,0,y)
+td.BackgroundColor3=Color3.fromRGB(60,60,70)
+td.Text="Select trait..."
+td.TextColor3=Color3.fromRGB(180,180,180)
+td.TextXAlignment="Left"
+td.Font=Enum.Font.Gotham
+td.TextSize=14
+td.ZIndex=2
+Instance.new("UICorner",td).CornerRadius=UDim.new(0,4)
 
-closeButton.MouseEnter:Connect(function()
-    tweenService:Create(closeButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(200, 50, 50)}):Play()
-end)
+-- Список трейтов
+local tlist=Instance.new("ScrollingFrame")
+tlist.Size=UDim2.new(1,0,0,150)
+tlist.Position=UDim2.new(0,0,0,y+31)
+tlist.BackgroundColor3=Color3.fromRGB(40,40,45)
+tlist.BackgroundTransparency=0
+tlist.Visible=false
+tlist.ScrollBarThickness=5
+tlist.ZIndex=10
+tlist.Parent=cf
+tlist.BorderSizePixel=0
+Instance.new("UICorner",tlist).CornerRadius=UDim.new(0,4)
 
-closeButton.MouseLeave:Connect(function()
-    tweenService:Create(closeButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60, 60, 70)}):Play()
-end)
+y=y+35
 
-closeButton.MouseButton1Click:Connect(function()
-    screenGui:Destroy()
-end)
+-- Чекбокс Shiny
+local sh=Instance.new("Frame",cf)
+sh.Size=UDim2.new(1,0,0,30)
+sh.Position=UDim2.new(0,0,0,y)
+sh.BackgroundColor3=Color3.fromRGB(60,60,70)
+sh.ZIndex=2
+Instance.new("UICorner",sh).CornerRadius=UDim.new(0,4)
 
--- Содержимое окна
-local contentFrame = Instance.new("Frame")
-contentFrame.Name = "ContentFrame"
-contentFrame.Size = UDim2.new(1, -30, 1, -50)
-contentFrame.Position = UDim2.new(0, 15, 0, 45)
-contentFrame.BackgroundTransparency = 1
-contentFrame.Parent = mainFrame
+local shb=Instance.new("TextButton",sh)
+shb.Size=UDim2.new(1,0,1,0)
+shb.BackgroundTransparency=1
+shb.Text=""
+shb.ZIndex=3
 
--- Создаем UIListLayout
-local listLayout = Instance.new("UIListLayout")
-listLayout.Padding = UDim.new(0, 15)
-listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-listLayout.VerticalAlignment = Enum.VerticalAlignment.Top
-listLayout.Parent = contentFrame
+local shm=Instance.new("Frame")
+shm.Size=UDim2.new(0,20,0,20)
+shm.Position=UDim2.new(0,10,0.5,-10)
+shm.BackgroundColor3=Color3.fromRGB(180,180,180)
+shm.Parent=sh
+shm.ZIndex=3
+Instance.new("UICorner",shm).CornerRadius=UDim.new(0,4)
 
--- Функция для создания информационной панели
-local function createInfoPanel(title, value, color)
-    local panel = Instance.new("Frame")
-    panel.Name = title .. "Panel"
-    panel.Size = UDim2.new(1, 0, 0, 70)
-    panel.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-    panel.BackgroundTransparency = 0.2
-    panel.BorderSizePixel = 0
-    panel.Parent = contentFrame
-    
-    local panelCorner = Instance.new("UICorner")
-    panelCorner.CornerRadius = UDim.new(0, 10)
-    panelCorner.Parent = panel
-    
-    local panelTitle = Instance.new("TextLabel")
-    panelTitle.Name = "Title"
-    panelTitle.Size = UDim2.new(1, -20, 0, 25)
-    panelTitle.Position = UDim2.new(0, 10, 0, 5)
-    panelTitle.BackgroundTransparency = 1
-    panelTitle.Text = title
-    panelTitle.TextColor3 = Color3.fromRGB(180, 180, 200)
-    panelTitle.TextScaled = true
-    panelTitle.Font = Enum.Font.Gotham
-    panelTitle.TextXAlignment = Enum.TextXAlignment.Left
-    panelTitle.Parent = panel
-    
-    local panelValue = Instance.new("TextLabel")
-    panelValue.Name = "Value"
-    panelValue.Size = UDim2.new(1, -20, 0, 35)
-    panelValue.Position = UDim2.new(0, 10, 0, 30)
-    panelValue.BackgroundTransparency = 1
-    panelValue.Text = value
-    panelValue.TextColor3 = color or Color3.fromRGB(255, 255, 255)
-    panelValue.TextScaled = true
-    panelValue.Font = Enum.Font.GothamBold
-    panelValue.TextXAlignment = Enum.TextXAlignment.Left
-    panelValue.Parent = panel
-    
-    local accent = Instance.new("Frame")
-    accent.Name = "Accent"
-    accent.Size = UDim2.new(0, 4, 1, -10)
-    accent.Position = UDim2.new(0, 0, 0, 5)
-    accent.BackgroundColor3 = color or Color3.fromRGB(100, 200, 255)
-    accent.BorderSizePixel = 0
-    accent.Parent = panel
-    
-    local accentCorner = Instance.new("UICorner")
-    accentCorner.CornerRadius = UDim.new(0, 2)
-    accentCorner.Parent = accent
-    
-    return panelValue
-end
+local shmt=Instance.new("TextLabel",shm)
+shmt.Size=UDim2.new(1,0,1,0)
+shmt.BackgroundTransparency=1
+shmt.Text="✓"
+shmt.TextColor3=Color3.fromRGB(0,200,0)
+shmt.Visible=false
+shmt.Font=Enum.Font.GothamBold
+shmt.TextSize=16
 
--- Создаем панели
-local standValueLabel = createInfoPanel("STAND", "Loading...", Color3.fromRGB(255, 180, 100))
-local worthinessValueLabel = createInfoPanel("WORTHINESS", "Loading...", Color3.fromRGB(100, 200, 255))
+local shl=Instance.new("TextLabel",sh)
+shl.Size=UDim2.new(1,-40,1,0)
+shl.Position=UDim2.new(0,35,0,0)
+shl.BackgroundTransparency=1
+shl.Text="Stop on Shiny"
+shl.TextColor3=Color3.new(1,1,1)
+shl.TextXAlignment="Left"
+shl.Font=Enum.Font.Gotham
+shl.TextSize=14
+shl.ZIndex=3
 
--- Панель для ввода желаемого стенда
-local targetPanel = Instance.new("Frame")
-targetPanel.Name = "TargetPanel"
-targetPanel.Size = UDim2.new(1, 0, 0, 180) -- Увеличил высоту
-targetPanel.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-targetPanel.BackgroundTransparency = 0.2
-targetPanel.BorderSizePixel = 0
-targetPanel.Parent = contentFrame
+y=y+35
 
-local targetCorner = Instance.new("UICorner")
-targetCorner.CornerRadius = UDim.new(0, 10)
-targetCorner.Parent = targetPanel
+-- Кнопка START
+local tb=Instance.new("TextButton",cf)
+tb.Size=UDim2.new(1,0,0,40)
+tb.Position=UDim2.new(0,0,0,y)
+tb.BackgroundColor3=Color3.fromRGB(255,0,0)
+tb.Text="START"
+tb.TextColor3=Color3.new(1,1,1)
+tb.Font=Enum.Font.GothamBold
+tb.TextSize=18
+tb.ZIndex=2
+Instance.new("UICorner",tb).CornerRadius=UDim.new(0,4)
 
-local targetTitle = Instance.new("TextLabel")
-targetTitle.Name = "Title"
-targetTitle.Size = UDim2.new(1, -20, 0, 25)
-targetTitle.Position = UDim2.new(0, 10, 0, 5)
-targetTitle.BackgroundTransparency = 1
-targetTitle.Text = "DESIRED STAND"
-targetTitle.TextColor3 = Color3.fromRGB(180, 180, 200)
-targetTitle.TextScaled = true
-targetTitle.Font = Enum.Font.Gotham
-targetTitle.TextXAlignment = Enum.TextXAlignment.Left
-targetTitle.Parent = targetPanel
-
--- Текстбокс для ввода
-local textBox = Instance.new("TextBox")
-textBox.Name = "TextBox"
-textBox.Size = UDim2.new(1, -40, 0, 35)
-textBox.Position = UDim2.new(0, 20, 0, 35)
-textBox.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-textBox.BackgroundTransparency = 0.3
-textBox.PlaceholderText = "Enter stand name..."
-textBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
-textBox.Text = ""
-textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-textBox.TextScaled = true
-textBox.Font = Enum.Font.Gotham
-textBox.BorderSizePixel = 0
-textBox.ClearTextOnFocus = false
-textBox.Parent = targetPanel
-
-local textBoxCorner = Instance.new("UICorner")
-textBoxCorner.CornerRadius = UDim.new(0, 8)
-textBoxCorner.Parent = textBox
-
--- Toggle для включения/выключения
-local toggleFrame = Instance.new("Frame")
-toggleFrame.Name = "ToggleFrame"
-toggleFrame.Size = UDim2.new(1, -40, 0, 35)
-toggleFrame.Position = UDim2.new(0, 20, 0, 80)
-toggleFrame.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-toggleFrame.BackgroundTransparency = 0.3
-toggleFrame.BorderSizePixel = 0
-toggleFrame.Parent = targetPanel
-
-local toggleCorner = Instance.new("UICorner")
-toggleCorner.CornerRadius = UDim.new(0, 8)
-toggleCorner.Parent = toggleFrame
-
-local toggleButton = Instance.new("TextButton")
-toggleButton.Name = "ToggleButton"
-toggleButton.Size = UDim2.new(0, 60, 0, 25)
-toggleButton.Position = UDim2.new(1, -70, 0.5, -12.5)
-toggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-toggleButton.Text = "OFF"
-toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-toggleButton.TextScaled = true
-toggleButton.Font = Enum.Font.GothamBold
-toggleButton.BorderSizePixel = 0
-toggleButton.Parent = toggleFrame
-
-local toggleCorner2 = Instance.new("UICorner")
-toggleCorner2.CornerRadius = UDim.new(0, 6)
-toggleCorner2.Parent = toggleButton
-
-local toggleLabel = Instance.new("TextLabel")
-toggleLabel.Name = "ToggleLabel"
-toggleLabel.Size = UDim2.new(1, -80, 1, 0)
-toggleLabel.Position = UDim2.new(0, 10, 0, 0)
-toggleLabel.BackgroundTransparency = 1
-toggleLabel.Text = "Auto-use arrows:"
-toggleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-toggleLabel.TextScaled = true
-toggleLabel.Font = Enum.Font.Gotham
-toggleLabel.TextXAlignment = Enum.TextXAlignment.Left
-toggleLabel.Parent = toggleFrame
-
--- НОВОЕ: Галочка для остановки при Worthiness = 0
-local worthinessCheckFrame = Instance.new("Frame")
-worthinessCheckFrame.Name = "WorthinessCheckFrame"
-worthinessCheckFrame.Size = UDim2.new(1, -40, 0, 35)
-worthinessCheckFrame.Position = UDim2.new(0, 20, 0, 125)
-worthinessCheckFrame.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-worthinessCheckFrame.BackgroundTransparency = 0.3
-worthinessCheckFrame.BorderSizePixel = 0
-worthinessCheckFrame.Parent = targetPanel
-
-local checkCorner = Instance.new("UICorner")
-checkCorner.CornerRadius = UDim.new(0, 8)
-checkCorner.Parent = worthinessCheckFrame
-
-local checkButton = Instance.new("TextButton")
-checkButton.Name = "CheckButton"
-checkButton.Size = UDim2.new(0, 25, 0, 25)
-checkButton.Position = UDim2.new(1, -35, 0.5, -12.5)
-checkButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-checkButton.Text = ""
-checkButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-checkButton.TextScaled = true
-checkButton.Font = Enum.Font.GothamBold
-checkButton.BorderSizePixel = 0
-checkButton.Parent = worthinessCheckFrame
-
-local checkCorner2 = Instance.new("UICorner")
-checkCorner2.CornerRadius = UDim.new(0, 6)
-checkCorner2.Parent = checkButton
-
--- Галочка (будет появляться при активации)
-local checkMark = Instance.new("TextLabel")
-checkMark.Name = "CheckMark"
-checkMark.Size = UDim2.new(1, 0, 1, 0)
-checkMark.BackgroundTransparency = 1
-checkMark.Text = "✓"
-checkMark.TextColor3 = Color3.fromRGB(0, 255, 0)
-checkMark.TextScaled = true
-checkMark.Font = Enum.Font.GothamBold
-checkMark.Visible = false
-checkMark.Parent = checkButton
-
-local checkLabel = Instance.new("TextLabel")
-checkLabel.Name = "CheckLabel"
-checkLabel.Size = UDim2.new(1, -80, 1, 0)
-checkLabel.Position = UDim2.new(0, 10, 0, 0)
-checkLabel.BackgroundTransparency = 1
-checkLabel.Text = "Stop on Worthiness = 0:"
-checkLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-checkLabel.TextScaled = true
-checkLabel.Font = Enum.Font.Gotham
-checkLabel.TextXAlignment = Enum.TextXAlignment.Left
-checkLabel.Parent = worthinessCheckFrame
+y=y+45
 
 -- Статус
-local autoStopStatus = Instance.new("TextLabel")
-autoStopStatus.Name = "Status"
-autoStopStatus.Size = UDim2.new(1, -40, 0, 25)
-autoStopStatus.Position = UDim2.new(0, 20, 0, 165)
-autoStopStatus.BackgroundTransparency = 1
-autoStopStatus.Text = "⏸ Idle"
-autoStopStatus.TextColor3 = Color3.fromRGB(150, 150, 150)
-autoStopStatus.TextScaled = true
-autoStopStatus.Font = Enum.Font.Gotham
-autoStopStatus.TextXAlignment = Enum.TextXAlignment.Left
-autoStopStatus.Parent = targetPanel
+local st=Instance.new("TextLabel",cf)
+st.Size=UDim2.new(1,0,0,20)
+st.Position=UDim2.new(0,0,0,y)
+st.BackgroundTransparency=1
+st.Text="Status: Idle"
+st.TextColor3=Color3.fromRGB(150,150,150)
+st.TextXAlignment="Left"
+st.Font=Enum.Font.Gotham
+st.TextSize=14
 
-local accent2 = Instance.new("Frame")
-accent2.Name = "Accent"
-accent2.Size = UDim2.new(0, 4, 1, -10)
-accent2.Position = UDim2.new(0, 0, 0, 5)
-accent2.BackgroundColor3 = Color3.fromRGB(255, 100, 255)
-accent2.BorderSizePixel = 0
-accent2.Parent = targetPanel
-
-local accentCorner2 = Instance.new("UICorner")
-accentCorner2.CornerRadius = UDim.new(0, 2)
-accentCorner2.Parent = accent2
-
--- Переменные
-local desiredStand = ""
-local autoStopEnabled = false
-local isActive = false
-local stopOnZeroWorthiness = false -- Новая переменная для галочки
-
--- Функция использования стрелы
-local function useArrow()
-    local args = {"Stand Arrow"}
-    local useItem = replicatedStorage:FindFirstChild("requests"):FindFirstChild("character"):FindFirstChild("use_item")
-    if useItem then
-        useItem:FireServer(unpack(args))
+-- Логика
+local stands={"None"}
+local assets=rs:FindFirstChild("assets")
+local af=assets and assets:FindFirstChild("animations")
+local sf=af and af:FindFirstChild("stands")
+if sf then 
+    for _,v in pairs(sf:GetChildren()) do 
+        if v:IsA("Folder") and v.Name~="None" then 
+            table.insert(stands,v.Name) 
+        end 
     end
+    table.sort(stands)
+    table.insert(stands,1,"None")
+else 
+    stands={"None","The World","Star Platinum","Gold Experience"} 
 end
 
--- Функция обновления данных
-local function updateData()
-    local success, standResult, worthinessResult = pcall(function()
-        local playerData = player:FindFirstChild("PlayerData")
-        if not playerData then 
-            return "No Data", "No Data"
+local traits={"Happy","Firm","Arrogant","Erratic","Energetic","Cowardly","Curious","Astute","Predictive","Kind","Determined","Compassionate","Furious","Slugger","Fearful","Durable","Elegant","Feral","Transcendent","Methodical","Dominant","Cursed","Rhythmic","Artistic","Suffocating"}
+table.sort(traits)
+table.insert(traits,1,"None")
+
+local dStand,dTrait="",""
+local shiny,farming,target=false,false,false
+
+-- Заполняем список стендов
+slist.CanvasSize=UDim2.new(0,0,0,#stands*30)
+for i,n in ipairs(stands) do
+    local b=Instance.new("TextButton",slist)
+    b.Size=UDim2.new(1,-10,0,25)
+    b.Position=UDim2.new(0,5,0,(i-1)*27)
+    b.BackgroundColor3=Color3.fromRGB(70,70,80)
+    b.Text=n
+    b.TextColor3=Color3.new(1,1,1)
+    b.Font=Enum.Font.Gotham
+    b.TextSize=14
+    b.ZIndex=11
+    b.BorderSizePixel=0
+    Instance.new("UICorner",b).CornerRadius=UDim.new(0,4)
+    
+    b.MouseButton1Click:Connect(function()
+        if n=="None" then 
+            dStand="" 
+            sd.Text="Select stand..." 
+            sd.TextColor3=Color3.fromRGB(180,180,180)
+        else 
+            dStand=n 
+            sd.Text=n 
+            sd.TextColor3=Color3.new(1,1,1) 
         end
-        
-        local slotData = playerData:FindFirstChild("SlotData")
-        if not slotData then 
-            return "No Data", "No Data"
-        end
-        
-        local stand = slotData:FindFirstChild("Stand")
-        local standValue = "???"
-        if stand then
-            local value = stand.Value
-            if type(value) == "string" then
-                local pattern = '"Name":"([^"]+)"'
-                local _, _, extracted = string.find(value, pattern)
-                if extracted then
-                    standValue = extracted
-                else
-                    standValue = "???"
-                end
-            else
-                standValue = "???"
-            end
-        end
-        
-        local worthiness = slotData:FindFirstChild("Worthiness")
-        local worthinessValue = "???"
-        if worthiness then
-            worthinessValue = tostring(worthiness.Value)
-        end
-        
-        return standValue, worthinessValue
+        slist.Visible=false 
+        target=false 
+        updateStatus()
     end)
+end
+
+-- Заполняем список трейтов
+tlist.CanvasSize=UDim2.new(0,0,0,#traits*30)
+for i,n in ipairs(traits) do
+    local b=Instance.new("TextButton",tlist)
+    b.Size=UDim2.new(1,-10,0,25)
+    b.Position=UDim2.new(0,5,0,(i-1)*27)
+    b.BackgroundColor3=Color3.fromRGB(70,70,80)
+    b.Text=n
+    b.TextColor3=Color3.new(1,1,1)
+    b.Font=Enum.Font.Gotham
+    b.TextSize=14
+    b.ZIndex=11
+    b.BorderSizePixel=0
+    Instance.new("UICorner",b).CornerRadius=UDim.new(0,4)
     
-    if success then
-        if standValueLabel then
-            standValueLabel.Text = standResult or "???"
+    b.MouseButton1Click:Connect(function()
+        if n=="None" then 
+            dTrait="" 
+            td.Text="Select trait..." 
+            td.TextColor3=Color3.fromRGB(180,180,180)
+        else 
+            dTrait=n 
+            td.Text=n 
+            td.TextColor3=Color3.new(1,1,1) 
         end
-        if worthinessValueLabel then
-            worthinessValueLabel.Text = worthinessResult or "???"
-        end
+        tlist.Visible=false 
+        target=false 
+        updateStatus()
+    end)
+end
+
+-- Открытие списков
+sd.MouseButton1Click:Connect(function() 
+    if slist.Visible then
+        slist.Visible=false
+    else
+        slist.Visible=true
+        tlist.Visible=false
+    end
+end)
+
+td.MouseButton1Click:Connect(function() 
+    if tlist.Visible then
+        tlist.Visible=false
+    else
+        tlist.Visible=true
+        slist.Visible=false
+    end
+end)
+
+shb.MouseButton1Click:Connect(function()
+    shiny=not shiny
+    shmt.Visible=shiny
+    shm.BackgroundColor3=shiny and Color3.fromRGB(100,200,100) or Color3.fromRGB(180,180,180)
+    target=false
+end)
+
+-- ОСНОВНОЕ ИЗМЕНЕНИЕ: функция получения данных с поддержкой скинов
+local function gData()
+    local pd=p:FindFirstChild("PlayerData") 
+    if not pd then return "No","No","No" end
+    
+    local sd=pd:FindFirstChild("SlotData") 
+    if not sd then return "No","No","No" end
+    
+    local st=sd:FindFirstChild("Stand")
+    local sn,tn="???","???"
+    
+    if st and st.Value then
+        local v=tostring(st.Value)
         
-        -- Проверка Worthiness = 0
-        local worthinessNum = tonumber(worthinessResult)
-        local worthinessZero = (worthinessNum == 0)
+        -- Пробуем распарсить как JSON
+        local success, data = pcall(function()
+            return game:GetService("HttpService"):JSONDecode(v)
+        end)
         
-        -- Проверяем совпадение с желаемым стендом
-        if desiredStand ~= "" and standResult == desiredStand then
-            if not autoStopEnabled then
-                autoStopEnabled = true
-                isActive = false
-                toggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-                toggleButton.Text = "OFF"
-                autoStopStatus.Text = "✅ Target acquired! Auto-stop enabled"
-                autoStopStatus.TextColor3 = Color3.fromRGB(0, 255, 0)
+        if success and data then
+            -- Если есть Skin, показываем его вместо Name
+            if data.Skin and data.Skin ~= "" then
+                sn = data.Skin
+            else
+                sn = data.Name or "???"
             end
-        -- НОВОЕ: Проверка Worthiness = 0 если галочка включена
-        elseif stopOnZeroWorthiness and worthinessZero and desiredStand ~= "" then
-            if not autoStopEnabled then
-                autoStopEnabled = true
-                isActive = false
-                toggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-                toggleButton.Text = "OFF"
-                autoStopStatus.Text = "⛔ Worthiness reached 0! Auto-stop enabled"
-                autoStopStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
-            end
+            tn = data.Trait or "???"
         else
-            if autoStopEnabled then
-                autoStopEnabled = false
-                autoStopStatus.Text = "⏸ Idle"
-                autoStopStatus.TextColor3 = Color3.fromRGB(150, 150, 150)
+            -- Если не JSON, пробуем через регулярные выражения
+            sn = string.match(v,'"Name":"([^"]+)"') or "???"
+            tn = string.match(v,'"Trait":"([^"]+)"') or "???"
+            
+            -- Проверяем наличие Skin
+            local skin = string.match(v,'"Skin":"([^"]+)"')
+            if skin and skin ~= "" then
+                sn = skin
             end
         end
     end
+    
+    local w=sd:FindFirstChild("Worthiness")
+    return sn, tn, w and tostring(w.Value) or "???"
 end
 
--- Обработка ввода текста
-textBox.FocusLost:Connect(function(enterPressed)
-    local text = textBox.Text:match("^%s*(.-)%s*$")
-    
-    if text ~= "" then
-        desiredStand = text
-        autoStopEnabled = false
-        autoStopStatus.Text = "⏸ Target set to: " .. desiredStand .. " (toggle ON to start)"
-        autoStopStatus.TextColor3 = Color3.fromRGB(150, 150, 150)
-        
-        updateData()
-    else
-        desiredStand = ""
-        autoStopEnabled = false
-        autoStopStatus.Text = "⏸ Enter desired stand..."
-        autoStopStatus.TextColor3 = Color3.fromRGB(150, 150, 150)
-    end
-end)
+local function updateUI()
+    local s,t,w=gData()
+    sl.Text="Stand: "..s
+    tl.Text="Trait: "..t
+    wl.Text="Worth: "..w
+    return s,t,w
+end
 
--- Toggle функционал
-toggleButton.MouseButton1Click:Connect(function()
-    if desiredStand == "" then
-        autoStopStatus.Text = "⚠ Enter a stand name first!"
-        autoStopStatus.TextColor3 = Color3.fromRGB(255, 255, 0)
-        return
+local function checkStop()
+    local s,t,w=updateUI()
+    local wn=tonumber(w)
+    
+    -- Shiny останавливает АВТОМАТИЧЕСКИ только если включен чекбокс
+    if shiny and wn~=nil and wn==0 then
+        return true
     end
     
-    if autoStopEnabled then
-        autoStopStatus.Text = "⛔ Cannot enable - stop condition met!"
-        autoStopStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
-        return
-    end
+    -- Проверка стенда и трейта
+    local sc=dStand=="" or s==dStand
+    local tc=dTrait=="" or t==dTrait
     
-    isActive = not isActive
-    
-    if isActive then
-        toggleButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-        toggleButton.Text = "ON"
-        autoStopStatus.Text = "🟡 Auto-using arrows for: " .. desiredStand
-        autoStopStatus.TextColor3 = Color3.fromRGB(255, 255, 0)
-    else
-        toggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-        toggleButton.Text = "OFF"
-        autoStopStatus.Text = "⏸ Idle"
-        autoStopStatus.TextColor3 = Color3.fromRGB(150, 150, 150)
-    end
-end)
+    return (dStand~="" or dTrait~="") and sc and tc
+end
 
--- НОВОЕ: Функционал галочки
-checkButton.MouseButton1Click:Connect(function()
-    stopOnZeroWorthiness = not stopOnZeroWorthiness
-    checkMark.Visible = stopOnZeroWorthiness
-    
-    if stopOnZeroWorthiness then
-        checkButton.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
-    else
-        checkButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-    end
-    
-    -- Обновляем статус
-    updateData()
-end)
-
--- Автоматическое использование стрел
-local arrowConnection
-arrowConnection = game:GetService("RunService").Heartbeat:Connect(function()
-    if isActive and desiredStand ~= "" and not autoStopEnabled then
-        useArrow()
-    end
-end)
-
--- Обновляем данные сразу
-task.wait(1)
-updateData()
-
--- Обновляем данные при изменении значений
-local function setupDataListener()
-    local playerData = player:FindFirstChild("PlayerData")
-    if not playerData then
-        player.ChildAdded:Connect(function(child)
-            if child.Name == "PlayerData" then
-                task.wait(0.5)
-                setupDataListener()
-                updateData()
-            end
-        end)
-        return
-    end
-    
-    local slotData = playerData:FindFirstChild("SlotData")
-    if not slotData then
-        playerData.ChildAdded:Connect(function(child)
-            if child.Name == "SlotData" then
-                task.wait(0.5)
-                setupDataListener()
-                updateData()
-            end
-        end)
-        return
-    end
-    
-    local stand = slotData:FindFirstChild("Stand")
-    if stand then
-        stand.Changed:Connect(function()
-            task.wait(0.1)
-            updateData()
-        end)
-    else
-        slotData.ChildAdded:Connect(function(child)
-            if child.Name == "Stand" then
-                task.wait(0.1)
-                child.Changed:Connect(function()
-                    task.wait(0.1)
-                    updateData()
-                end)
-                updateData()
-            end
-        end)
-    end
-    
-    local worthiness = slotData:FindFirstChild("Worthiness")
-    if worthiness then
-        worthiness.Changed:Connect(function()
-            task.wait(0.1)
-            updateData()
-        end)
-    else
-        slotData.ChildAdded:Connect(function(child)
-            if child.Name == "Worthiness" then
-                task.wait(0.1)
-                child.Changed:Connect(function()
-                    task.wait(0.1)
-                    updateData()
-                end)
-                updateData()
-            end
-        end)
+local function updateStatus()
+    if target then 
+        if shiny and tonumber(wl.Text:match("%d+"))==0 then
+            st.Text="Status: SHINY FOUND! (can force start)"
+        else
+            st.Text="Status: TARGET REACHED"
+        end
+        st.TextColor3=Color3.fromRGB(0,255,0)
+    elseif farming then 
+        st.Text="Status: FARMING..." 
+        st.TextColor3=Color3.fromRGB(255,255,0)
+    else 
+        st.Text="Status: Idle" 
+        st.TextColor3=Color3.fromRGB(150,150,150) 
     end
 end
 
-setupDataListener()
+local function useArrow()
+    local r=rs:FindFirstChild("requests") if not r then return end
+    local c=r:FindFirstChild("character") if not c then return end
+    local u=c:FindFirstChild("use_item") if u then u:FireServer("Stand Arrow") end
+end
 
--- Анимация появления
-mainFrame.Size = UDim2.new(0, 0, 0, 0)
-mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+tb.MouseButton1Click:Connect(function()
+    -- Можно включить принудительно даже если target=true
+    farming=not farming
+    
+    if farming then
+        tb.BackgroundColor3=Color3.fromRGB(0,200,0)
+        tb.Text="STOP"
+        -- Если включили принудительно, сбрасываем target
+        target=false
+    else
+        tb.BackgroundColor3=Color3.fromRGB(255,0,0)
+        tb.Text="START"
+    end
+    
+    updateStatus()
+end)
 
-tweenService:Create(mainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-    Size = UDim2.new(0, 350, 0, 400),
-    Position = UDim2.new(0.5, -175, 0.5, -200)
-}):Play()
-
--- Очистка при закрытии
-screenGui.Destroying:Connect(function()
-    if arrowConnection then
-        arrowConnection:Disconnect()
+local last=0
+rs2.Heartbeat:Connect(function()
+    -- Автоматическая остановка только если не в принудительном режиме
+    if checkStop() and farming and not target then
+        target=true 
+        farming=false
+        tb.BackgroundColor3=Color3.fromRGB(255,0,0) 
+        tb.Text="START"
+        updateStatus()
+    end
+    
+    -- Использование стрел если farming включен
+    if farming then
+        local n=tick()
+        if n-last>=1 then 
+            useArrow() 
+            last=n 
+        end
     end
 end)
+
+updateUI()

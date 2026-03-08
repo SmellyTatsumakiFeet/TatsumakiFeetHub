@@ -1,0 +1,357 @@
+-- Создаем главное меню
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local Title = Instance.new("TextLabel")
+local ToggleButton = Instance.new("TextButton")
+local CloseButton = Instance.new("TextButton")
+local StatusLabel = Instance.new("TextLabel")
+local UICorner = Instance.new("UICorner")
+local UIGradient = Instance.new("UIGradient")
+
+-- Настройка GUI
+ScreenGui.Name = "TerritoryFarm"
+ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.ResetOnSpawn = false
+
+-- Основной фрейм
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+MainFrame.BorderSizePixel = 0
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -75)
+MainFrame.Size = UDim2.new(0, 300, 0, 150)
+MainFrame.Draggable = true
+MainFrame.Active = true
+
+-- Скругление углов
+UICorner.Parent = MainFrame
+UICorner.CornerRadius = UDim.new(0, 10)
+
+-- Градиент для красивого фона
+UIGradient.Parent = MainFrame
+UIGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(35, 35, 45)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(20, 20, 30))
+})
+
+-- Заголовок
+Title.Parent = MainFrame
+Title.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.Font = Enum.Font.GothamBold
+Title.Text = "Territory Farm"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 20
+
+-- Кнопка закрытия
+CloseButton.Parent = MainFrame
+CloseButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+CloseButton.Position = UDim2.new(1, -30, 0, 5)
+CloseButton.Size = UDim2.new(0, 25, 0, 25)
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.Text = "X"
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.TextSize = 16
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.Parent = CloseButton
+CloseCorner.CornerRadius = UDim.new(0, 5)
+
+CloseButton.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+    if _G.TerritoryFarm then
+        _G.TerritoryFarm.Running = false
+    end
+end)
+
+-- Кнопка вкл/выкл
+ToggleButton.Parent = MainFrame
+ToggleButton.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
+ToggleButton.Position = UDim2.new(0.5, -75, 0.5, -15)
+ToggleButton.Size = UDim2.new(0, 150, 0, 40)
+ToggleButton.Font = Enum.Font.GothamBold
+ToggleButton.Text = "START"
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.TextSize = 18
+
+local ButtonCorner = Instance.new("UICorner")
+ButtonCorner.Parent = ToggleButton
+ButtonCorner.CornerRadius = UDim.new(0, 8)
+
+-- Статус
+StatusLabel.Parent = MainFrame
+StatusLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Position = UDim2.new(0, 10, 1, -30)
+StatusLabel.Size = UDim2.new(1, -20, 0, 25)
+StatusLabel.Font = Enum.Font.Gotham
+StatusLabel.Text = "Status: Stopped"
+StatusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+StatusLabel.TextSize = 14
+StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Переменные для управления циклом
+_G.TerritoryFarm = _G.TerritoryFarm or {}
+_G.TerritoryFarm.Running = false
+_G.TerritoryFarm.Connection = nil
+
+-- Функция для проверки текста в объектах
+local function CheckObjectiveText()
+    local player = game.Players.LocalPlayer
+    local success, holder = pcall(function()
+        return player.PlayerGui.menu.task_holder.holder
+    end)
+    
+    if not success or not holder then return nil end
+    
+    -- Получаем все дочерние объекты
+    local children = holder:GetChildren()
+    
+    for i = 3, #children do
+        local container = children[i]
+        if container.Name:find("newobjective") then
+            local scrollingFrame = container:FindFirstChild("ScrollingFrame")
+            if scrollingFrame then
+                local objectiveHolder = scrollingFrame:FindFirstChild("holder")
+                if objectiveHolder then
+                    local singleObjective = objectiveHolder:FindFirstChild("singleobjective")
+                    if singleObjective then
+                        local textLabel = singleObjective:FindFirstChild("TextLabel")
+                        if textLabel and textLabel.Text then
+                            -- Проверяем начало текста
+                            if string.find(textLabel.Text, "^Defeat the player") then
+                                return "defeat"
+                            elseif textLabel.Text == "Capture a Gang Territory." then
+                                return "capture"
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    return nil
+end
+
+-- Функция отправки remote event
+local function SendRemoteEvent()
+    local npc = workspace:FindFirstChild("Npcs") and workspace.Npcs:FindFirstChild("Gang Contractor")
+    local replicatedStorage = game:GetService("ReplicatedStorage")
+    
+    if npc and replicatedStorage then
+        local requests = replicatedStorage:FindFirstChild("requests")
+        if requests then
+            local characterReq = requests:FindFirstChild("character")
+            if characterReq then
+                local dialogue = characterReq:FindFirstChild("dialogue")
+                if dialogue then
+                    dialogue:FireServer(npc, "Yes.")
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end
+
+-- Функция для смерти персонажа
+local function KillPlayer()
+    StatusLabel.Text = "Status: Killing player for defeat task..."
+    local player = game.Players.LocalPlayer
+    local character = player.Character
+    
+    if character and character:FindFirstChild("Humanoid") then
+        character.Humanoid.Health = 0
+    end
+    
+    -- Ждем респавна
+    wait(3)
+    
+    -- Ждем пока персонаж появится снова
+    repeat
+        wait(0.5)
+    until player.Character and player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0
+    
+    StatusLabel.Text = "Status: Respawned, continuing..."
+    wait(1)
+end
+
+-- Функция для параллельного выполнения задач
+local function RunParallelTasks(timeout)
+    local startTime = tick()
+    local objectiveType = nil
+    local remoteCount = 0
+    
+    -- Создаем потоки для параллельного выполнения
+    local objectiveThread = coroutine.create(function()
+        while tick() - startTime < timeout and not objectiveType do
+            objectiveType = CheckObjectiveText()
+            if not objectiveType then
+                wait(0.1)
+            end
+        end
+    end)
+    
+    local remoteThread = coroutine.create(function()
+        while tick() - startTime < timeout do
+            SendRemoteEvent()
+            remoteCount = remoteCount + 1
+            StatusLabel.Text = "Status: Sending dialogue (" .. remoteCount .. ")"
+            wait(0.3)
+        end
+    end)
+    
+    -- Запускаем оба потока
+    coroutine.resume(objectiveThread)
+    coroutine.resume(remoteThread)
+    
+    -- Ждем завершения проверки объектива или таймаута
+    while tick() - startTime < timeout do
+        if objectiveType then
+            break
+        end
+        wait(0.1)
+    end
+    
+    return objectiveType
+end
+
+-- Функция выполнения действий
+local function ExecuteActions()
+    local player = game.Players.LocalPlayer
+    local character = player.Character
+    if not character then return end
+    
+    -- Шаг 1: Телепорт на первую позицию
+    StatusLabel.Text = "Status: Teleporting to NPC..."
+    character:MoveTo(Vector3.new(957.657959, 909.697144, 943.423828))
+    wait(1)
+    
+    -- Шаг 2: Запускаем параллельные задачи
+    StatusLabel.Text = "Status: Running parallel tasks..."
+    local objectiveType = RunParallelTasks(10) -- Таймаут 10 секунд
+    
+    -- Проверяем результаты
+    if objectiveType == "capture" then
+        StatusLabel.Text = "Status: Capture objective found! Moving to territory..."
+        wait(0.5)
+        
+        -- Шаг 3: Телепорт на территорию
+        character:MoveTo(Vector3.new(2322.73096, 878.196106, 405.2087))
+        wait(1.5)
+        
+        -- Находим и активируем промпт
+        local success, territoryPrompt = pcall(function()
+            return workspace.Map["Gang Territories"]["Gas Station"].Graffiti.TerritoryPrompt
+        end)
+        
+        if success and territoryPrompt then
+            StatusLabel.Text = "Status: Capturing territory..."
+            territoryPrompt.HoldDuration = 0
+            fireproximityprompt(territoryPrompt)
+            wait(1)
+            StatusLabel.Text = "Status: Territory captured!"
+        else
+            StatusLabel.Text = "Status: Territory prompt not found"
+        end
+        
+    elseif objectiveType == "defeat" then
+        StatusLabel.Text = "Status: Defeat objective found! Committing suicide..."
+        KillPlayer()
+        
+    else
+        StatusLabel.Text = "Status: No objective found, restarting cycle..."
+    end
+    
+    wait(0.5)
+end
+
+-- Функция цикла
+local function StartLoop()
+    _G.TerritoryFarm.Running = true
+    
+    local function LoopFunction()
+        while _G.TerritoryFarm.Running do
+            -- Проверяем наличие персонажа перед каждым циклом
+            local player = game.Players.LocalPlayer
+            if player and player.Character then
+                local success, err = pcall(ExecuteActions)
+                if not success then
+                    StatusLabel.Text = "Status: Error occurred, continuing..."
+                    wait(1)
+                end
+            else
+                StatusLabel.Text = "Status: Waiting for character..."
+                wait(1)
+            end
+            wait(0.5) -- Небольшая пауза перед повторением
+        end
+    end
+    
+    -- Запускаем цикл в отдельном потоке
+    _G.TerritoryFarm.Connection = coroutine.wrap(LoopFunction)
+    _G.TerritoryFarm.Connection()
+end
+
+-- Функция остановки цикла
+local function StopLoop()
+    _G.TerritoryFarm.Running = false
+    if _G.TerritoryFarm.Connection then
+        _G.TerritoryFarm.Connection = nil
+    end
+end
+
+-- Обработчик кнопки
+ToggleButton.MouseButton1Click:Connect(function()
+    if _G.TerritoryFarm.Running then
+        StopLoop()
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
+        ToggleButton.Text = "START"
+        StatusLabel.Text = "Status: Stopped"
+    else
+        StartLoop()
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        ToggleButton.Text = "STOP"
+        StatusLabel.Text = "Status: Running..."
+    end
+end)
+
+-- Делаем окно перетаскиваемым
+local dragging
+local dragInput
+local dragStart
+local startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+MainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+MainFrame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        update(input)
+    end
+end)
+
+print("Script loaded - Territory Farm GUI with continuous dialogue sending!")

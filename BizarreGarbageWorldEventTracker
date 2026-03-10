@@ -1,0 +1,572 @@
+--[[
+    PudgeHub World Event Tracker v0.5
+    Made by STF for PudgeHub
+]]
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local HttpService = game:GetService("HttpService")
+local LocalPlayer = Players.LocalPlayer
+
+-- Debug function
+local function debugPrint(...)
+    local args = {...}
+    local message = ""
+    for i, v in ipairs(args) do
+        message = message .. tostring(v) .. " "
+    end
+    print("🔍 [PudgeHub Debug] " .. message)
+end
+
+debugPrint("Script loaded! Version 0.5")
+
+-- Create GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "PudgeHubGUI"
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+debugPrint("GUI created")
+
+-- Main window
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 350, 0, 280)
+MainFrame.Position = UDim2.new(0.5, -175, 0.5, -140)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+MainFrame.BackgroundTransparency = 0.1
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = false
+MainFrame.Parent = ScreenGui
+
+-- Rainbow stroke
+local Stroke = Instance.new("UIStroke")
+Stroke.Name = "RainbowStroke"
+Stroke.Thickness = 3
+Stroke.Color = Color3.fromRGB(255, 0, 0)
+Stroke.Parent = MainFrame
+
+-- Corner rounding
+local Corner = Instance.new("UICorner")
+Corner.CornerRadius = UDim.new(0, 10)
+Corner.Parent = MainFrame
+
+-- Title bar (for dragging)
+local TitleBar = Instance.new("Frame")
+TitleBar.Name = "TitleBar"
+TitleBar.Size = UDim2.new(1, 0, 0, 40)
+TitleBar.Position = UDim2.new(0, 0, 0, 0)
+TitleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+TitleBar.BackgroundTransparency = 0.5
+TitleBar.BorderSizePixel = 0
+TitleBar.Parent = MainFrame
+
+local TitleBarCorner = Instance.new("UICorner")
+TitleBarCorner.CornerRadius = UDim.new(0, 10)
+TitleBarCorner.Parent = TitleBar
+
+-- Close button (X)
+local CloseButton = Instance.new("TextButton")
+CloseButton.Name = "CloseButton"
+CloseButton.Size = UDim2.new(0, 30, 0, 30)
+CloseButton.Position = UDim2.new(1, -35, 0, 5)
+CloseButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+CloseButton.BackgroundTransparency = 0.3
+CloseButton.Text = "X"
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.TextSize = 20
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.BorderSizePixel = 0
+CloseButton.Parent = TitleBar
+
+local CloseButtonCorner = Instance.new("UICorner")
+CloseButtonCorner.CornerRadius = UDim.new(0, 5)
+CloseButtonCorner.Parent = CloseButton
+
+-- Title
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(0.8, 0, 1, 0)
+Title.Position = UDim2.new(0, 15, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "PudgeHub Event Tracker"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 18
+Title.Font = Enum.Font.GothamBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = TitleBar
+
+-- Webhook textbox
+local WebhookBox = Instance.new("TextBox")
+WebhookBox.Size = UDim2.new(0.9, 0, 0, 40)
+WebhookBox.Position = UDim2.new(0.05, 0, 0, 50)
+WebhookBox.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+WebhookBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+WebhookBox.PlaceholderText = "Enter Discord webhook URL..."
+WebhookBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
+WebhookBox.TextSize = 14
+WebhookBox.Font = Enum.Font.Gotham
+WebhookBox.ClearTextOnFocus = false
+WebhookBox.Parent = MainFrame
+
+local BoxCorner = Instance.new("UICorner")
+BoxCorner.CornerRadius = UDim.new(0, 5)
+BoxCorner.Parent = WebhookBox
+
+-- Status label
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Size = UDim2.new(0.9, 0, 0, 30)
+StatusLabel.Position = UDim2.new(0.05, 0, 0, 100)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Text = "Status: Waiting..."
+StatusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+StatusLabel.TextSize = 14
+StatusLabel.Font = Enum.Font.Gotham
+StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
+StatusLabel.Parent = MainFrame
+
+-- Debug toggle button
+local DebugToggle = Instance.new("TextButton")
+DebugToggle.Size = UDim2.new(0.9, 0, 0, 30)
+DebugToggle.Position = UDim2.new(0.05, 0, 0, 135)
+DebugToggle.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+DebugToggle.Text = "Debug: ON"
+DebugToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+DebugToggle.TextSize = 14
+DebugToggle.Font = Enum.Font.Gotham
+DebugToggle.Parent = MainFrame
+
+local DebugCorner = Instance.new("UICorner")
+DebugCorner.CornerRadius = UDim.new(0, 5)
+DebugCorner.Parent = DebugToggle
+
+-- Toggle button
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Size = UDim2.new(0.9, 0, 0, 40)
+ToggleButton.Position = UDim2.new(0.05, 0, 0, 175)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(70, 130, 200)
+ToggleButton.Text = "Start Tracking"
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.TextSize = 16
+ToggleButton.Font = Enum.Font.GothamBold
+ToggleButton.Parent = MainFrame
+
+local ButtonCorner = Instance.new("UICorner")
+ButtonCorner.CornerRadius = UDim.new(0, 5)
+ButtonCorner.Parent = ToggleButton
+
+-- Credits text
+local CreditsLabel = Instance.new("TextLabel")
+CreditsLabel.Size = UDim2.new(1, -20, 0, 20)
+CreditsLabel.Position = UDim2.new(0, 10, 1, -25)
+CreditsLabel.BackgroundTransparency = 1
+CreditsLabel.Text = "made by STF for PudgeHub. v0.5"
+CreditsLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+CreditsLabel.TextSize = 12
+CreditsLabel.Font = Enum.Font.Gotham
+CreditsLabel.TextXAlignment = Enum.TextXAlignment.Right
+CreditsLabel.Parent = MainFrame
+
+-- Debug mode variable
+local debugMode = true
+
+-- Debug toggle function
+DebugToggle.MouseButton1Click:Connect(function()
+    debugMode = not debugMode
+    DebugToggle.Text = debugMode and "Debug: ON" or "Debug: OFF"
+    if debugMode then
+        DebugToggle.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    else
+        DebugToggle.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    end
+    debugPrint("Debug mode set to:", debugMode)
+end)
+
+-- Dragging variables
+local dragging = false
+local dragInput
+local dragStart
+local startPos
+
+-- Close button function
+CloseButton.MouseButton1Click:Connect(function()
+    debugPrint("GUI closed by user")
+    ScreenGui:Destroy()
+end)
+
+-- Dragging functions
+local function updateInput(input)
+    local delta = input.Position - dragStart
+    MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+TitleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        debugPrint("Dragging started")
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+                debugPrint("Dragging ended")
+            end
+        end)
+    end
+end)
+
+TitleBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        updateInput(input)
+    end
+end)
+
+-- Rainbow animation
+local hue = 0
+local rainbowConnection
+
+local function updateRainbow()
+    hue = hue + 0.005
+    if hue > 1 then hue = 0 end
+    
+    local color = Color3.fromHSV(hue, 1, 1)
+    Stroke.Color = color
+end
+
+-- Start rainbow animation
+rainbowConnection = RunService.RenderStepped:Connect(updateRainbow)
+debugPrint("Rainbow animation started")
+
+-- Discord webhook function (Wave/Potassium compatible)
+local function sendToDiscord(webhookUrl)
+    if not webhookUrl or webhookUrl == "" then
+        StatusLabel.Text = "Status: Error - No webhook URL!"
+        if debugMode then debugPrint("Error: No webhook URL provided") end
+        return false
+    end
+    
+    -- Check if webhook URL is valid
+    if not string.find(webhookUrl, "discord.com/api/webhooks/") then
+        StatusLabel.Text = "Status: Invalid webhook URL!"
+        if debugMode then debugPrint("Error: Invalid webhook URL -", webhookUrl) end
+        return false
+    end
+    
+    if debugMode then debugPrint("Attempting to send webhook to:", webhookUrl) end
+    
+    local data = {
+        ["content"] = "@everyone A World Event Has Started!",
+        ["username"] = "PudgeHub Event Tracker",
+        ["avatar_url"] = "https://i.imgur.com/7Y7Y7Y7.png",
+        ["embeds"] = {{
+            ["title"] = "🌍 World Event Started!",
+            ["description"] = "A world event has been detected. Head to Morioh Train Station to participate!",
+            ["color"] = 16711680,
+            ["timestamp"] = DateTime.now():ToIsoDate(),
+            ["footer"] = {
+                ["text"] = "PudgeHub v0.5 • Made by STF"
+            }
+        }}
+    }
+    
+    -- Method 1: Standard HttpService (works in most executors)
+    local success1, result1 = pcall(function()
+        local jsonData = HttpService:JSONEncode(data)
+        HttpService:PostAsync(webhookUrl, jsonData, Enum.HttpContentType.ApplicationJson)
+        return true
+    end)
+    
+    if success1 then
+        StatusLabel.Text = "Status: Notification sent!"
+        if debugMode then debugPrint("Webhook sent successfully using HttpService") end
+        return true
+    end
+    
+    if debugMode then debugPrint("HttpService method failed, trying syn.request...") end
+    
+    -- Method 2: syn.request (Wave/Potassium compatible)
+    local success2, result2 = pcall(function()
+        local request = syn and syn.request or http and http.request or request
+        if not request then
+            error("No request function found")
+        end
+        
+        local response = request({
+            Url = webhookUrl,
+            Method = "POST",
+            Headers = {
+                ["Content-Type"] = "application/json"
+            },
+            Body = HttpService:JSONEncode(data)
+        })
+        
+        if response and response.StatusCode == 204 then
+            return true
+        else
+            return false, response
+        end
+    end)
+    
+    if success2 and result2 == true then
+        StatusLabel.Text = "Status: Notification sent!"
+        if debugMode then debugPrint("Webhook sent successfully using syn.request") end
+        return true
+    end
+    
+    -- Method 3: http.request (alternative)
+    if debugMode then debugPrint("syn.request failed, trying http.request...") end
+    
+    local success3, result3 = pcall(function()
+        if not http or not http.request then
+            error("No http.request function found")
+        end
+        
+        local response = http.request({
+            Url = webhookUrl,
+            Method = "POST",
+            Headers = {
+                ["Content-Type"] = "application/json"
+            },
+            Body = HttpService:JSONEncode(data)
+        })
+        
+        return response and response.StatusCode == 204
+    end)
+    
+    if success3 and result3 then
+        StatusLabel.Text = "Status: Notification sent!"
+        if debugMode then debugPrint("Webhook sent successfully using http.request") end
+        return true
+    end
+    
+    -- All methods failed
+    StatusLabel.Text = "Status: Failed to send!"
+    if debugMode then 
+        debugPrint("All webhook methods failed!")
+        debugPrint("HttpService error:", result1)
+        debugPrint("syn.request error:", result2)
+        debugPrint("http.request error:", result3)
+    end
+    return false
+end
+
+-- ========== ОСНОВНАЯ ЛОГИКА С ЗАЩИТОЙ ОТ СПАМА ==========
+
+-- Переменные для отслеживания состояния события
+local eventActive = false
+local lastEventId = nil
+local webhookSent = false
+
+-- Функция проверки события (ТОЛЬКО ОДИН РАЗ!)
+local function checkForEvent(webhookUrl)
+    local success, result = pcall(function()
+        if debugMode then debugPrint("🔍 Checking for event...") end
+        
+        local notifications = LocalPlayer.PlayerGui:FindFirstChild("Notifications")
+        if not notifications then
+            if debugMode then debugPrint("❌ Notifications folder not found") end
+            return false, nil
+        end
+        
+        local holder = notifications:FindFirstChild("holder")
+        if not holder then
+            if debugMode then debugPrint("❌ Holder not found in Notifications") end
+            return false, nil
+        end
+        
+        -- Ищем фрейм с нужным названием
+        for _, frame in pairs(holder:GetChildren()) do
+            if frame:IsA("Frame") then
+                local frameName = frame.Name
+                
+                if debugMode then 
+                    debugPrint("🔍 Found frame with name:", frameName)
+                end
+                
+                if frameName == "A World Event is starting. Head to the Morioh Train Station to participate." then
+                    -- Возвращаем true и ID фрейма (чтобы отличать разные события)
+                    return true, frame
+                end
+            end
+        end
+        
+        return false, nil
+    end)
+    
+    if success then
+        local eventExists, eventFrame = result
+        
+        if eventExists then
+            -- Событие существует
+            if not eventActive then
+                -- Событие ТОЛЬКО ЧТО ПОЯВИЛОСЬ
+                eventActive = true
+                lastEventId = eventFrame
+                webhookSent = false
+                
+                if debugMode then 
+                    debugPrint("🎯 NEW EVENT DETECTED! Sending webhook...")
+                end
+                
+                StatusLabel.Text = "Status: New event! Sending..."
+                sendToDiscord(webhookUrl)
+                webhookSent = true
+                
+            elseif eventActive and not webhookSent then
+                -- Страховка: если событие активно, но вебхук не отправлен
+                if debugMode then debugPrint("⚠️ Event active but webhook not sent - sending now...") end
+                sendToDiscord(webhookUrl)
+                webhookSent = true
+                
+            else
+                -- Событие уже активно и вебхук отправлен - ничего не делаем
+                if debugMode and math.random(1, 10) == 1 then -- Редко выводим, чтобы не спамить в консоль
+                    debugPrint("⏳ Event still active - waiting for it to end...")
+                end
+            end
+        else
+            -- События нет
+            if eventActive then
+                -- Событие ТОЛЬКО ЧТО ЗАКОНЧИЛОСЬ
+                eventActive = false
+                lastEventId = nil
+                webhookSent = false
+                
+                if debugMode then 
+                    debugPrint("✅ Event ended - ready for next event")
+                end
+                StatusLabel.Text = "Status: Event ended - waiting for next..."
+            end
+        end
+    elseif debugMode then
+        debugPrint("❌ Error in checkForEvent:", result)
+    end
+end
+
+-- Tracking variables
+local isRunning = false
+local loopConnection = nil
+local checkCount = 0
+
+-- Start tracking function
+local function startTracking()
+    local webhookUrl = WebhookBox.Text
+    if webhookUrl == "" then
+        StatusLabel.Text = "Status: Enter webhook URL!"
+        if debugMode then debugPrint("Error: No webhook URL provided") end
+        return
+    end
+    
+    -- Сбрасываем состояние при старте
+    eventActive = false
+    lastEventId = nil
+    webhookSent = false
+    checkCount = 0
+    
+    isRunning = true
+    ToggleButton.Text = "Stop Tracking"
+    ToggleButton.BackgroundColor3 = Color3.fromRGB(200, 70, 70)
+    StatusLabel.Text = "Status: Tracking active..."
+    
+    if debugMode then 
+        debugPrint("🚀 Tracking started with webhook:", webhookUrl)
+        debugPrint("📋 Anti-spam protection enabled - will send ONLY ONCE per event")
+    end
+    
+    -- Start checking loop every second
+    loopConnection = RunService.Heartbeat:Connect(function()
+        if isRunning then
+            task.wait(1)
+            checkCount = checkCount + 1
+            
+            -- Показываем статус каждые 10 проверок
+            if debugMode and checkCount % 10 == 0 then
+                local status = eventActive and "ACTIVE" or "WAITING"
+                local webhookStatus = webhookSent and "✅ Sent" or "⏳ Not sent"
+                debugPrint(string.format("📊 Check #%d - Event: %s | Webhook: %s", 
+                    checkCount, status, webhookStatus))
+            end
+            
+            checkForEvent(WebhookBox.Text)
+        end
+    end)
+end
+
+-- Stop tracking function
+local function stopTracking()
+    isRunning = false
+    if loopConnection then
+        loopConnection:Disconnect()
+        loopConnection = nil
+    end
+    ToggleButton.Text = "Start Tracking"
+    ToggleButton.BackgroundColor3 = Color3.fromRGB(70, 130, 200)
+    StatusLabel.Text = "Status: Stopped"
+    
+    if debugMode then 
+        debugPrint("🛑 Tracking stopped. Total checks performed:", checkCount)
+        debugPrint("Final state - Event:", eventActive and "ACTIVE" or "INACTIVE", 
+                  "| Webhook sent:", webhookSent and "YES" or "NO")
+    end
+    
+    -- Сбрасываем состояние
+    eventActive = false
+    lastEventId = nil
+    webhookSent = false
+end
+
+-- Button click handler
+ToggleButton.MouseButton1Click:Connect(function()
+    if isRunning then
+        stopTracking()
+    else
+        startTracking()
+    end
+end)
+
+-- Cleanup function
+local function onDestroy()
+    if rainbowConnection then
+        rainbowConnection:Disconnect()
+    end
+    if loopConnection then
+        loopConnection:Disconnect()
+    end
+    debugPrint("GUI destroyed, connections cleaned up")
+end
+
+-- Connect cleanup to GUI destruction
+ScreenGui.Destroying:Connect(onDestroy)
+
+-- Keep GUI centered on viewport change
+local function onViewportChange()
+    if not dragging then
+        MainFrame.Position = UDim2.new(0.5, -175, 0.5, -140)
+    end
+end
+
+workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(onViewportChange)
+
+-- Initial debug info
+debugPrint("✅ Script initialized successfully!")
+debugPrint("📡 Available webhook methods:")
+debugPrint("- HttpService: Available")
+debugPrint("- syn.request:", syn and "✅ Available" or "❌ Not available")
+debugPrint("- http.request:", http and http.request and "✅ Available" or "❌ Not available")
+debugPrint("🛡️ ANTI-SPAM PROTECTION: Enabled")
+debugPrint("📋 Mode: Send ONLY ONCE when event appears, wait for it to disappear")
+
+print("✅ PudgeHub Event Tracker v0.5 loaded! Made by STF")
+print("📢 Debug mode is ON - Check console for detailed logs")
+print("🛡️ ANTI-SPAM: Will send ONLY ONE notification per event!")
+print("🔍 Looking for FRAME NAMES, not TextLabels!")

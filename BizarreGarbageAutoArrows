@@ -3,6 +3,7 @@ local rs=game:GetService("ReplicatedStorage")
 local uis=game:GetService("UserInputService")
 local rs2=game:GetService("RunService")
 local ts=game:GetService("TweenService")
+local http=game:GetService("HttpService") -- для работы с вебхуками
 
 -- Список исключений для стендов
 local excludedStands={
@@ -616,6 +617,154 @@ shl.ZIndex=3
 
 y=y+37
 
+-- НОВЫЙ БЛОК: Вебхук Discord
+local webhookLabel=Instance.new("TextLabel",cf)
+webhookLabel.Size=UDim2.new(1,0,0,20)
+webhookLabel.Position=UDim2.new(0,0,0,y)
+webhookLabel.BackgroundTransparency=1
+webhookLabel.Text="🔗 Discord Webhook URL:"
+webhookLabel.TextColor3=colors.textDim
+webhookLabel.TextXAlignment="Left"
+webhookLabel.Font=Enum.Font.Gotham
+webhookLabel.TextSize=12
+y=y+22
+
+-- Поле ввода вебхука
+local webhookFrame=Instance.new("Frame",cf)
+webhookFrame.Size=UDim2.new(1,0,0,32)
+webhookFrame.Position=UDim2.new(0,0,0,y)
+webhookFrame.BackgroundColor3=colors.button
+webhookFrame.ZIndex=2
+Instance.new("UICorner",webhookFrame).CornerRadius=UDim.new(0,6)
+
+local webhookBox=Instance.new("TextBox",webhookFrame)
+webhookBox.Size=UDim2.new(1,-10,1,0)
+webhookBox.Position=UDim2.new(0,5,0,0)
+webhookBox.BackgroundTransparency=1
+webhookBox.PlaceholderText="https://discord.com/api/webhooks/..."
+webhookBox.PlaceholderColor3=colors.textDim
+webhookBox.Text=""
+webhookBox.TextColor3=colors.text
+webhookBox.TextXAlignment="Left"
+webhookBox.Font=Enum.Font.Gotham
+webhookBox.TextSize=14
+webhookBox.ClearTextOnFocus=false
+webhookBox.ZIndex=3
+
+-- Переменная для хранения вебхука
+local webhookUrl = ""
+
+-- Обновляем при изменении текста
+webhookBox.FocusLost:Connect(function(enterPressed)
+    webhookUrl = webhookBox.Text
+    -- Сохраняем в Synapse Z (опционально)
+    if syn and syn.crypt and syn.crypt.encrypt then
+        -- Можно сохранить для следующих запусков
+    end
+end)
+
+y=y+37
+
+-- Кнопка теста вебхука
+local testWebhookBtn=Instance.new("TextButton",cf)
+testWebhookBtn.Size=UDim2.new(0.48,0,0,30)
+testWebhookBtn.Position=UDim2.new(0,0,0,y)
+testWebhookBtn.BackgroundColor3=colors.button
+testWebhookBtn.Text="Test Webhook"
+testWebhookBtn.TextColor3=colors.text
+testWebhookBtn.Font=Enum.Font.Gotham
+testWebhookBtn.TextSize=14
+testWebhookBtn.ZIndex=2
+Instance.new("UICorner",testWebhookBtn).CornerRadius=UDim.new(0,6)
+
+testWebhookBtn.MouseEnter:Connect(function()
+    testWebhookBtn.BackgroundColor3=colors.buttonHover
+end)
+testWebhookBtn.MouseLeave:Connect(function()
+    testWebhookBtn.BackgroundColor3=colors.button
+end)
+
+-- Кнопка сохранения/очистки
+local clearWebhookBtn=Instance.new("TextButton",cf)
+clearWebhookBtn.Size=UDim2.new(0.48,0,0,30)
+clearWebhookBtn.Position=UDim2.new(0.52,0,0,y)
+clearWebhookBtn.BackgroundColor3=colors.button
+clearWebhookBtn.Text="Clear"
+clearWebhookBtn.TextColor3=colors.text
+clearWebhookBtn.Font=Enum.Font.Gotham
+clearWebhookBtn.TextSize=14
+clearWebhookBtn.ZIndex=2
+Instance.new("UICorner",clearWebhookBtn).CornerRadius=UDim.new(0,6)
+
+clearWebhookBtn.MouseEnter:Connect(function()
+    clearWebhookBtn.BackgroundColor3=colors.buttonHover
+end)
+clearWebhookBtn.MouseLeave:Connect(function()
+    clearWebhookBtn.BackgroundColor3=colors.button
+end)
+
+clearWebhookBtn.MouseButton1Click:Connect(function()
+    webhookBox.Text = ""
+    webhookUrl = ""
+end)
+
+-- Функция отправки в Discord
+local function sendToDiscord(message)
+    if webhookUrl == nil or webhookUrl == "" then
+        return false
+    end
+    
+    -- Проверяем, что это похоже на Discord webhook
+    if not string.find(webhookUrl, "discord.com/api/webhooks/") then
+        return false
+    end
+    
+    local success, result = pcall(function()
+        -- Создаем данные для отправки
+        local data = {
+            ["content"] = message,
+            ["username"] = "Stand Farm Bot"
+        }
+        
+        -- Конвертируем в JSON
+        local jsonData = http:JSONEncode(data)
+        
+        -- Отправляем запрос
+        request = syn and syn.request or http and http.request
+        if request then
+            request({
+                Url = webhookUrl,
+                Method = "POST",
+                Headers = {
+                    ["Content-Type"] = "application/json"
+                },
+                Body = jsonData
+            })
+            return true
+        end
+        return false
+    end)
+    
+    return success
+end
+
+-- Тест вебхука
+testWebhookBtn.MouseButton1Click:Connect(function()
+    if webhookUrl == "" then
+        webhookBox.PlaceholderText = "⚠️ Enter webhook URL first!"
+        return
+    end
+    
+    local success = sendToDiscord("✅ Test message from Stand Farm - " .. os.date("%H:%M:%S"))
+    if success then
+        webhookBox.PlaceholderText = "✅ Test sent!"
+    else
+        webhookBox.PlaceholderText = "❌ Failed to send"
+    end
+end)
+
+y=y+35
+
 -- Кнопка START
 local tb=Instance.new("TextButton",cf)
 tb.Size=UDim2.new(1,0,0,40)
@@ -665,7 +814,7 @@ local creditLabel=Instance.new("TextLabel",f)
 creditLabel.Size=UDim2.new(1,-10,0,16)
 creditLabel.Position=UDim2.new(0,0,1,-20)
 creditLabel.BackgroundTransparency=1
-creditLabel.Text="Made by STF for Pudge Hub. v1.5"
+creditLabel.Text="Made by STM. v1.5"
 creditLabel.TextColor3=Color3.fromRGB(150,150,150)
 creditLabel.TextTransparency=0.7
 creditLabel.TextXAlignment="Right"
@@ -700,6 +849,7 @@ local selectedStands={}
 local selectedTraits={}
 local selectedSkins={}
 local shiny,farming,target=false,false,false
+local hasNotified=false -- флаг чтобы не спамить уведомлениями
 
 -- Функции обновления отображения
 local function updateSelectedStandsDisplay()
@@ -817,6 +967,7 @@ for i,n in ipairs(stands) do
         end
         updateSelectedStandsDisplay()
         target=false
+        hasNotified=false
     end)
 end
 
@@ -890,6 +1041,7 @@ for i,n in ipairs(traits) do
         end
         updateSelectedTraitsDisplay()
         target=false
+        hasNotified=false
     end)
 end
 
@@ -963,6 +1115,7 @@ for i,n in ipairs(skinNames) do
         end
         updateSelectedSkinsDisplay()
         target=false
+        hasNotified=false
     end)
 end
 
@@ -1036,9 +1189,10 @@ shb.MouseButton1Click:Connect(function()
     shmt.Visible=shiny
     shm.BackgroundColor3=shiny and colors.success or Color3.fromRGB(150,150,150)
     target=false
+    hasNotified=false
 end)
 
--- Функция получения данных (БЕЗ ДОБАВЛЕНИЯ ЛИШНИХ СКОБОК)
+-- Функция получения данных
 local function gData()
     local pd=p:FindFirstChild("PlayerData") 
     if not pd then return "No","No","No",false,"" end
@@ -1055,12 +1209,11 @@ local function gData()
         local v=tostring(st.Value)
         
         local success, data = pcall(function()
-            return game:GetService("HttpService"):JSONDecode(v)
+            return http:JSONDecode(v)
         end)
         
         if success and data then
             if data.Skin and data.Skin ~= "" then
-                -- Скин уже в правильном формате от игры, например "Greyscale (Red Hot Chili Pepper)"
                 sn = data.Skin
                 hasSkin=true
                 skinValue = data.Skin
@@ -1069,7 +1222,6 @@ local function gData()
             end
             tn = data.Trait or "???"
         else
-            -- Если не JSON, пробуем через регулярные выражения
             local name = string.match(v,'"Name":"([^"]+)"') or "???"
             local trait = string.match(v,'"Trait":"([^"]+)"') or "???"
             local skin = string.match(v,'"Skin":"([^"]+)"')
@@ -1104,7 +1256,7 @@ local function checkStop()
     
     -- Shiny всегда останавливает если включен
     if shiny and wn~=nil and wn==0 then
-        return true
+        return true, "✨ SHINY"
     end
     
     -- Проверка есть ли вообще выбранные условия
@@ -1132,12 +1284,14 @@ local function checkStop()
         end
     end
     
-    -- Проверка скина (сравниваем с тем, что в списке)
+    -- Проверка скина
     local skinMatch = false
+    local matchedSkinName = ""
     if hasSkinConditions and hasSkin then
         for name,_ in pairs(selectedSkins) do
-            if s == name then -- s это "Greyscale (Red Hot Chili Pepper)" из игры
+            if s == name then
                 skinMatch = true
+                matchedSkinName = name
                 break
             end
         end
@@ -1145,10 +1299,12 @@ local function checkStop()
     
     -- Проверка стенда
     local standMatch = false
+    local matchedStandName = ""
     if hasStandConditions then
         for name,_ in pairs(selectedStands) do
             if s == name then
                 standMatch = true
+                matchedStandName = name
                 break
             end
         end
@@ -1156,10 +1312,12 @@ local function checkStop()
     
     -- Проверка трейта
     local traitMatch = false
+    local matchedTraitName = ""
     if hasTraitConditions then
         for name,_ in pairs(selectedTraits) do
             if t == name then
                 traitMatch = true
+                matchedTraitName = name
                 break
             end
         end
@@ -1167,25 +1325,46 @@ local function checkStop()
     
     -- Если ничего не выбрано - не останавливаемся
     if not hasStandConditions and not hasTraitConditions and not hasSkinConditions then
-        return false
+        return false, ""
     end
     
     -- Применяем приоритеты
+    local shouldStop = false
+    local reason = ""
+    
     if currentPriority=="skin" then
-        return skinMatch
+        shouldStop = skinMatch
+        reason = "🎨 " .. matchedSkinName
     elseif currentPriority=="skinOrEither" then
-        return skinMatch or standMatch or traitMatch
+        shouldStop = skinMatch or standMatch or traitMatch
+        if skinMatch then
+            reason = "🎨 " .. matchedSkinName
+        elseif standMatch then
+            reason = "📌 " .. matchedStandName
+        elseif traitMatch then
+            reason = "✨ " .. matchedTraitName
+        end
     elseif currentPriority=="both" then
-        return standMatch and traitMatch
+        shouldStop = standMatch and traitMatch
+        if shouldStop then
+            reason = "📌 " .. matchedStandName .. " + ✨ " .. matchedTraitName
+        end
     elseif currentPriority=="trait" then
-        return traitMatch
+        shouldStop = traitMatch
+        reason = "✨ " .. matchedTraitName
     elseif currentPriority=="stand" then
-        return standMatch
+        shouldStop = standMatch
+        reason = "📌 " .. matchedStandName
     elseif currentPriority=="either" then
-        return standMatch or traitMatch
+        shouldStop = standMatch or traitMatch
+        if standMatch then
+            reason = "📌 " .. matchedStandName
+        elseif traitMatch then
+            reason = "✨ " .. matchedTraitName
+        end
     end
     
-    return false
+    return shouldStop, reason
 end
 
 local function updateStatus()
@@ -1220,6 +1399,7 @@ tb.MouseButton1Click:Connect(function()
         tb.BackgroundColor3=colors.success
         tb.Text="STOP"
         target=false
+        hasNotified=false
         lastClickTime=tick()
     else
         tb.BackgroundColor3=colors.error
@@ -1234,12 +1414,22 @@ rs2.Heartbeat:Connect(function()
     local currentTime=tick()
     
     if farming and not target and (currentTime-lastClickTime>=checkDelay) then
-        if checkStop() then
+        local shouldStop, reason = checkStop()
+        if shouldStop then
             target=true 
             farming=false
             tb.BackgroundColor3=colors.error
             tb.Text="START"
             updateStatus()
+            
+            -- Отправляем в Discord если вебхук указан и еще не отправляли
+            if not hasNotified and webhookUrl ~= "" then
+                hasNotified = true
+                local stand, trait, worth = gData()
+                local message = string.format("**🎯 Target Acquired!**\n```\nReason: %s\nStand: %s\nTrait: %s\nWorth: %s\nTime: %s\n```", 
+                    reason, stand, trait, worth, os.date("%H:%M:%S"))
+                sendToDiscord(message)
+            end
         end
     end
     
@@ -1252,11 +1442,37 @@ rs2.Heartbeat:Connect(function()
     end
 end)
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 -- Анимация появления
 local function animateIn()
     ts:Create(f, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-        Size=UDim2.new(0,300,0,710),
-        Position=UDim2.new(0.5,-150,0.5,-355)
+        Size=UDim2.new(0,300,0,810), -- Увеличил высоту для вебхука
+        Position=UDim2.new(0.5,-150,0.5,-405)
     }):Play()
 end
 
@@ -1269,3 +1485,4 @@ spawn(function()
         updateUI()
     end
 end)
+--AYO SUS LINE NUMBER🤤🤤
